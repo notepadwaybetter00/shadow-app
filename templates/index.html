@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shadow - AI College Assistant | Rayat Bahra Hoshiarpur</title>
+<link rel="manifest" href="/static/manifest.webmanifest">
+<meta name="theme-color" content="#05060f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shadow">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #eef2ff;
+    background: #05060f;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ---------- Ambient video background ---------- */
+  #bgVideo {
+    position: fixed;
+    top: 50%; left: 50%;
+    width: 100vw; height: 100vh;
+    transform: translate(-50%, -50%) scale(1.15);
+    pointer-events: none;
+    z-index: 0;
+    border: 0;
+  }
+  #bgVideo iframe {
+    width: 100%; height: 100%;
+    border: 0;
+  }
+  .bg-tint {
+    position: fixed; inset: 0; z-index: 1;
+    background:
+      linear-gradient(180deg,
+        rgba(5, 6, 15, 0.72) 0%,
+        rgba(5, 6, 15, 0.55) 40%,
+        rgba(5, 6, 15, 0.88) 85%,
+        #05060f 100%);
+  }
+
+  /* ---------- AI ambient orbs ---------- */
+  .orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    opacity: 0.22;
+    z-index: 1;
+    pointer-events: none;
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  .orb.a { width: 480px; height: 480px; top: -140px; left: -120px;
+           background: radial-gradient(circle, #6366f1, transparent 70%); }
+  .orb.b { width: 420px; height: 420px; bottom: -120px; right: -100px;
+           background: radial-gradient(circle, #a855f7, transparent 70%); animation-delay: -6s; }
+  .orb.c { width: 360px; height: 360px; top: 40%; left: 55%;
+           background: radial-gradient(circle, #22d3ee, transparent 70%); animation-delay: -12s; }
+  @keyframes drift {
+    from { transform: translate3d(0, 0, 0) scale(1); }
+    to   { transform: translate3d(60px, -40px, 0) scale(1.15); }
+  }
+
+  /* ---------- Nav ---------- */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 4vw;
+    background: rgba(5, 6, 15, 0.45);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand .logo {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    display: grid; place-items: center;
+    font-weight: 800; font-size: 18px; color: #fff;
+    box-shadow: 0 6px 20px rgba(168, 85, 247, 0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  .brand .name { font-weight: 700; font-size: 17px; letter-spacing: 0.3px; }
+  .brand .sub { font-size: 12px; color: #a5b4fc; margin-top: 1px; }
+  .status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12.5px; font-weight: 600; color: #d1d5db;
+    padding: 7px 14px; border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  #installBtn {
+    display: none; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 700; color: #fff;
+    padding: 8px 15px; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #a855f7);
+    border: none;
+    box-shadow: 0 4px 16px rgba(168, 85, 247, 0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  #installBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(168, 85, 247, 0.6); }
+  #installBtn .ico { font-size: 14px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399;
+         box-shadow: 0 0 10px #34d399; animation: pulse 1.8s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+  /* ---------- Hero + card ---------- */
+  .hero {
+    position: relative; z-index: 2;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 90px 16px 60px;
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase;
+    color: #c7d2fe;
+    padding: 7px 16px; border-radius: 999px; margin-bottom: 22px;
+    background: rgba(99, 102, 241, 0.14);
+    border: 1px solid rgba(99, 102, 241, 0.4);
+    box-shadow: 0 0 24px rgba(99, 102, 241, 0.25);
+  }
+  .card {
+    width: 100%; max-width: 600px;
+    height: min(72vh, 620px);
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 22px;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: cardIn 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes cardIn {
+    from { opacity: 0; transform: perspective(1200px) rotateY(-10deg) translateY(40px) scale(.95); }
+    to   { opacity: 1; transform: none; }
+  }
+  header {
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.92), rgba(168, 85, 247, 0.92));
+    color: #fff; padding: 18px 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+  header h1 { font-size: 21px; display: flex; align-items: center; gap: 9px; }
+  header h1 .spark { font-size: 16px; }
+  header p { font-size: 12.5px; opacity: 0.92; margin-top: 3px; color: #e0e7ff; }
+  #chat {
+    flex: 1; overflow-y: auto; padding: 18px;
+    display: flex; flex-direction: column; gap: 12px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.25) transparent;
+  }
+  #chat::-webkit-scrollbar { width: 6px; }
+  #chat::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); border-radius: 3px; }
+  .msg {
+    max-width: 82%; padding: 11px 15px; border-radius: 16px;
+    font-size: 14.5px; line-height: 1.45; white-space: pre-wrap;
+    animation: msgIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+  .user {
+    align-self: flex-end; background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #fff; border-bottom-right-radius: 5px;
+    box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .bot {
+    align-self: flex-start; background: rgba(255, 255, 255, 0.12);
+    color: #eef2ff; border-bottom-left-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .typing { font-style: italic; color: #a5b4fc; }
+  #chips {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 0 18px 10px;
+  }
+  .chip {
+    font-size: 12px; font-weight: 600; color: #c7d2fe;
+    padding: 6px 12px; border-radius: 999px; cursor: pointer;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    transition: all 0.15s ease;
+  }
+  .chip:hover { background: rgba(99, 102, 241, 0.25); border-color: #818cf8; transform: translateY(-1px); }
+  footer {
+    display: flex; gap: 10px; padding: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+  }
+  input {
+    flex: 1; padding: 12px 16px; border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px; font-size: 14.5px; outline: none;
+    background: rgba(255, 255, 255, 0.08); color: #fff; min-width: 0;
+  }
+  input::placeholder { color: #a5b4fc; }
+  input:focus { border-color: #818cf8; box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.25); }
+  button#send {
+    padding: 12px 22px; background: linear-gradient(135deg, #6366f1, #a855f7);
+    color: #fff; border: none; border-radius: 12px; font-size: 14.5px; font-weight: 600;
+    cursor: pointer; box-shadow: 0 6px 20px rgba(168, 85, 247, 0.45), inset 0 1px 0 rgba(255,255,255,0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  button#send:hover { transform: translateY(-2px) scale(1.03); box-shadow: 0 10px 26px rgba(168, 85, 247, 0.6); }
+  button#send:active { transform: translateY(0) scale(.97); }
+  button#send:disabled { opacity: 0.55; cursor: default; transform: none; }
+
+  /* ---------- Video gallery ---------- */
+  .videos {
+    position: relative; z-index: 2;
+    max-width: 1100px; margin: 0 auto;
+    padding: 70px 22px 40px;
+  }
+  .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
+  .section-head h2 {
+    font-size: 26px; font-weight: 800;
+    background: linear-gradient(90deg, #fff, #c7d2fe);
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .section-head p { font-size: 13.5px; color: #a5b4fc; margin-top: 6px; }
+  .filter-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tab {
+    font-size: 12.5px; font-weight: 600; color: #c7d2fe;
+    padding: 7px 15px; border-radius: 999px; cursor: pointer;
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+    transition: all .15s ease;
+  }
+  .tab.active { background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff; border-color: transparent; box-shadow: 0 4px 16px rgba(168,85,247,0.4); }
+  .grid {
+    display: grid; gap: 22px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .vcard {
+    cursor: pointer; border-radius: 16px; overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(10px);
+    transition: transform 0.25s cubic-bezier(0.22,1,0.36,1), box-shadow 0.25s ease, border-color 0.25s ease;
+    animation: msgIn 0.5s cubic-bezier(0.22,1,0.36,1) both;
+  }
+  .vcard:hover { transform: translateY(-5px); border-color: rgba(129,140,248,0.6); box-shadow: 0 18px 44px rgba(0,0,0,0.5), 0 0 30px rgba(99,102,241,0.2); }
+  .thumb { position: relative; aspect-ratio: 16/9; background: #0b0d1c; overflow: hidden; }
+  .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
+  .vcard:hover .thumb img { transform: scale(1.06); }
+  .thumb::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, transparent 55%, rgba(0,0,0,0.55));
+  }
+  .play-badge {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 52px; height: 52px; border-radius: 50%; z-index: 2;
+    background: rgba(255, 255, 255, 0.92); color: #4f46e5;
+    display: grid; place-items: center; font-size: 18px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    transition: transform 0.25s ease, background 0.25s ease;
+  }
+  .play-badge::before { content: ''; width: 0; height: 0; margin-left: 3px;
+    border-style: solid; border-width: 8px 0 8px 13px; border-color: transparent transparent transparent currentColor; }
+  .vcard:hover .play-badge { transform: translate(-50%, -50%) scale(1.12); background: #fff; }
+  .tag {
+    position: absolute; top: 10px; left: 10px; z-index: 2;
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+    padding: 4px 10px; border-radius: 999px; color: #fff;
+    background: rgba(5,6,15,0.55); border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(6px);
+  }
+  .vbody { padding: 13px 15px 15px; }
+  .vbody h3 { font-size: 14.5px; font-weight: 600; line-height: 1.35; color: #eef2ff;
+              display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .vbody .meta { font-size: 12px; color: #a5b4fc; margin-top: 6px; }
+
+  /* ---------- Modal player ---------- */
+  .modal {
+    position: fixed; inset: 0; z-index: 50;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+    background: rgba(3, 4, 12, 0.85);
+    backdrop-filter: blur(10px);
+  }
+  .modal.open { display: flex; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-box {
+    width: min(92vw, 920px);
+    border-radius: 18px; overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.16);
+    box-shadow: 0 40px 90px rgba(0,0,0,0.7);
+    background: #000;
+    animation: popIn 0.35s cubic-bezier(0.22,1,0.36,1);
+  }
+  @keyframes popIn { from { opacity: 0; transform: scale(0.92) translateY(16px); } to { opacity: 1; transform: none; } }
+  .ratio { position: relative; aspect-ratio: 16/9; }
+  .ratio iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+  .modal-close {
+    position: absolute; top: -14px; right: -14px; z-index: 2;
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #a855f7); color: #fff;
+    border: 2px solid #05060f; font-size: 16px; font-weight: 700;
+    cursor: pointer; display: grid; place-items: center;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+  }
+  .modal-caption { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+                   padding: 12px 16px; font-size: 13px; color: #c7d2fe; background: #0b0d1c; }
+
+  footer.site-foot {
+    position: relative; z-index: 2;
+    text-align: center; font-size: 12px; color: #6b7280;
+    padding: 30px 16px 40px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  @media (max-width: 640px) {
+    nav { padding: 12px 16px; }
+    .brand .sub { display: none; }
+    .hero { padding-top: 80px; padding-bottom: 40px; }
+    .card { height: 80vh; }
+    .videos { padding-top: 50px; }
+  }
+</style>
+</head>
+<body>
+
+  <div id="bgVideo"><iframe id="bgFrame" allow="autoplay; encrypted-media" title="Campus background video"></iframe></div>
+  <div class="bg-tint"></div>
+  <div class="orb a"></div>
+  <div class="orb b"></div>
+  <div class="orb c"></div>
+
+  <nav>
+    <div class="brand">
+      <div class="logo">S</div>
+      <div>
+        <div class="name">Shadow</div>
+        <div class="sub">Rayat Bahra, Hoshiarpur</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button id="installBtn"><span class="ico">&#11015;</span> Install App</button>
+      <div class="status"><span class="dot"></span> Live &middot; Gemini AI</div>
+    </div>
+  </nav>
+
+  <section class="hero">
+    <div class="eyebrow">&#9654; Rayat Bahra Institute of Engineering &amp; Nano Technology &middot; Hoshiarpur</div>
+    <div class="card">
+      <header>
+        <h1><span class="spark">&#9889;</span> Shadow</h1>
+        <p>Your AI campus assistant &mdash; admissions, fees, events, hostels, placements &amp; more.</p>
+      </header>
+      <div id="chat"></div>
+      <div id="chips"></div>
+      <footer>
+        <input id="input" type="text" placeholder="Ask about admissions, fees, campus life..." autocomplete="off">
+        <button id="send">Send</button>
+      </footer>
+    </div>
+  </section>
+
+  <section class="videos" id="campus-focus">
+    <div class="section-head">
+      <div>
+        <h2>Campus in Focus</h2>
+        <p>High-resolution videos of the campus, its events and its sporting spirit.</p>
+      </div>
+      <div class="filter-tabs">
+        <button class="tab active" data-cat="all">All</button>
+        <button class="tab" data-cat="campus">Campus</button>
+        <button class="tab" data-cat="events">Events</button>
+        <button class="tab" data-cat="sports">Sports</button>
+      </div>
+    </div>
+    <div class="grid" id="vgrid"></div>
+  </section>
+
+  <footer class="site-foot">Shadow &mdash; AI campus assistant &middot; Videos &amp; thumbnails courtesy of their respective owners on YouTube</footer>
+
+  <div class="modal" id="modal">
+    <div class="modal-box">
+      <div class="ratio"><iframe id="player"></iframe></div>
+      <div class="modal-caption">
+        <span id="mcap"></span>
+        <button class="modal-close" id="mclose">&times;</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* ---------- Campus video library (verified embeddable) ---------- */
+const VIDEOS = [
+  { id: 'owKbA-VFi-A', cat: 'campus',  title: 'Campus Tour | Rayat-Bahra Hoshiarpur Campus', src: 'Official Channel' , tag: 'Campus Tour' },
+  { id: 'v55Mebm7dUI', cat: 'campus',  title: 'Rayat-Bahra Hoshiarpur Campus at a Glance', src: 'Official Channel' , tag: 'Campus' },
+  { id: '3SUcBDg9lbU', cat: 'campus',  title: 'Every Step on Campus &mdash; Cinematic Glimpse', src: 'Bahra Cinematics', tag: 'Cinematic' },
+  { id: 'NIi8OL9PCak', cat: 'campus',  title: 'Welcome to Rayat Bahra Professional University', src: 'Official Channel' , tag: 'Campus' },
+  { id: 'Zd1bnIEvPK4', cat: 'events',  title: 'Rayat Bahra Annual Fest 2025-26, Hoshiarpur', src: 'Hoshiarpur Update', tag: 'Festival' },
+  { id: 'HX2hE0SEaOQ', cat: 'sports',  title: '14th Annual Sports Meet 2025 &mdash; Teaser', src: 'Official Channel' , tag: 'Sports Meet' }
+];
+const BG_ID = 'owKbA-VFi-A';
+const BG_EMBED = 'https://www.youtube.com/embed/' + BG_ID +
+  '?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&playsinline=1' +
+  '&iv_load_policy=3&disablekb=1&modestbranding=1&playlist=' + BG_ID;
+document.getElementById('bgFrame').src = BG_EMBED;
+
+/* ---------- Video gallery ---------- */
+const grid = document.getElementById('vgrid');
+const caption = document.getElementById('mcap');
+const player = document.getElementById('player');
+const modal = document.getElementById('modal');
+let activeCat = 'all';
+
+function thumbOf(id) {
+  return 'https://i.ytimg.com/vi/' + id + '/maxresdefault.jpg';
+}
+
+function render() {
+  grid.innerHTML = '';
+  VIDEOS.filter(v => activeCat === 'all' || v.cat === activeCat).forEach((v, i) => {
+    const card = document.createElement('div');
+    card.className = 'vcard';
+    card.style.animationDelay = (i * 0.06) + 's';
+    card.innerHTML =
+      '<div class="thumb">' +
+        '<img src="' + thumbOf(v.id) + '" alt="' + v.title.replace(/<[^>]+>/g, '') +
+          '" onerror="this.onerror=null;this.src=' + "'https://i.ytimg.com/vi/" + v.id + "/hqdefault.jpg'" + ';">' +
+        '<span class="play-badge"></span>' +
+        '<span class="tag">' + v.tag + '</span>' +
+      '</div>' +
+      '<div class="vbody"><h3>' + v.title + '</h3><div class="meta">' + v.src + ' &middot; YouTube</div></div>';
+    card.addEventListener('click', () => openPlayer(v.id, v.title));
+    grid.appendChild(card);
+  });
+}
+
+function openPlayer(id, title) {
+  caption.innerHTML = title;
+  player.src = 'https://www.youtube.com/embed/' + id + '?autoplay=1&rel=0';
+  modal.classList.add('open');
+}
+function closePlayer() {
+  player.src = '';
+  modal.classList.remove('open');
+}
+document.getElementById('mclose').addEventListener('click', closePlayer);
+modal.addEventListener('click', e => { if (e.target === modal) closePlayer(); });
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    activeCat = tab.dataset.cat;
+    render();
+  });
+});
+render();
+
+/* ---------- Chat ---------- */
+const chat = document.getElementById('chat');
+const input = document.getElementById('input');
+const send = document.getElementById('send');
+let history = [];
+
+function addMsg(role, text) {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  history.push({ role, text });
+}
+
+function setBusy(busy) {
+  send.disabled = busy;
+  input.disabled = busy;
+  if (!busy) input.focus();
+}
+
+async function sendMessage() {
+  const text = input.value.trim();
+  if (!text || send.disabled) return;
+  input.value = '';
+  addMsg('user', text);
+  const typing = document.createElement('div');
+  typing.className = 'msg bot typing';
+  typing.textContent = 'Thinking...';
+  chat.appendChild(typing);
+  chat.scrollTop = chat.scrollHeight;
+  setBusy(true);
+  try {
+    const res = await fetch('/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history })
+    });
+    const data = await res.json();
+    typing.remove();
+    addMsg('bot', data.reply);
+  } catch (err) {
+    typing.remove();
+    addMsg('bot', 'Sorry, something went wrong. Try again.');
+  }
+  setBusy(false);
+}
+
+send.addEventListener('click', sendMessage);
+input.addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+const SUGGESTIONS = ['Admissions 2026', 'Fees & scholarships', 'Campus events', 'Sports facilities', 'Hostel & library', 'Placements'];
+const chips = document.getElementById('chips');
+SUGGESTIONS.forEach(s => {
+  const c = document.createElement('div');
+  c.className = 'chip';
+  c.textContent = s;
+  c.addEventListener('click', () => { input.value = s; sendMessage(); });
+  chips.appendChild(c);
+});
+
+addMsg('bot', 'Hi! I\'m Shadow, your AI assistant at Rayat Bahra Institute of Engineering and Nano Technology, Hoshiarpur. Ask me about admissions, fees, scholarships, hostels, campus life or placements \u2014 or scroll down to explore campus videos below.');
+setBusy(false);
+
+/* ---------- Install as App (PWA) ---------- */
+const installBtn = document.getElementById('installBtn');
+let deferredPrompt = null;
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+function showInstallInstructions() {
+  alert('To install Shadow on iPhone/iPad:\n\n1. Tap the Share button (square with an up arrow) in Safari\n2. Scroll down and tap "Add to Home Screen"\n3. Tap "Add" in the top-right\n\nShadow will then appear on your home screen like a real app.');
+}
+
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.style.display = 'inline-flex';
+});
+
+installBtn.addEventListener('click', async () => {
+  if (isIOS) { showInstallInstructions(); return; }
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
+
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  installBtn.style.display = 'none';
+});
+
+if (isIOS) installBtn.style.display = 'inline-flex';
+
+/* ---------- Service worker (offline shell + install) ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+# Never upload secrets
+api_key.txt
+.env
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
