@@ -1031,9 +1031,11 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, UX ? 1.5 : 2));
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMappingExposure = 1.4;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x090303, 9, 26);
+scene.fog = new THREE.Fog(0x140303, 12, 30);
 
 const camera = new THREE.PerspectiveCamera(46, splash.clientWidth / splash.clientHeight, 0.1, 60);
 const camStart = new THREE.Vector3(-0.4, 2.1, 8.2);
@@ -1044,6 +1046,9 @@ camera.position.copy(camStart);
 scene.add(new THREE.AmbientLight(0x4a2424, 1.1));
 const moonLight = new THREE.PointLight(0xff7a6a, 3.0, 30, 2);
 moonLight.position.set(3.6, 5.6, -9);
+moonLight.castShadow = true;
+moonLight.shadow.mapSize.set(UX ? 512 : 1024, UX ? 512 : 1024);
+moonLight.shadow.bias = -0.002;
 scene.add(moonLight);
 const rim = new THREE.DirectionalLight(0x9fb4ff, 1.4);
 rim.position.set(4, 3, -6);
@@ -1071,6 +1076,49 @@ function glowTexture() {
   return new THREE.CanvasTexture(c);
 }
 
+function moonTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  const r = g.createRadialGradient(140, 120, 12, 128, 128, 122);
+  r.addColorStop(0, '#fff1e4');
+  r.addColorStop(0.6, '#ffc7b2');
+  r.addColorStop(1, '#ff9488');
+  g.fillStyle = r;
+  g.beginPath(); g.arc(128, 128, 118, 0, Math.PI * 2); g.fill();
+  for (let i = 0; i < 16; i++) {
+    const x = 82 + Math.random() * 92;
+    const y = 88 + Math.random() * 80;
+    const rr = 3 + Math.random() * 11;
+    g.fillStyle = 'rgba(150,70,60,' + (0.25 + Math.random() * 0.2).toFixed(2) + ')';
+    g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
+  }
+  for (let i = 0; i < 40; i++) {
+    g.fillStyle = 'rgba(255,220,200,' + (0.05 + Math.random() * 0.1).toFixed(2) + ')';
+    g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 2, 1 + Math.random() * 2);
+  }
+  return new THREE.CanvasTexture(c);
+}
+
+function groundTexture() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const g = c.getContext('2d');
+  g.fillStyle = '#24120c';
+  g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2400; i++) {
+    const R = 0x2c + Math.floor(Math.random() * 36);
+    const Gr = 0x16 + Math.floor(Math.random() * 22);
+    const B = 0x10 + Math.floor(Math.random() * 14);
+    g.fillStyle = 'rgba(' + R + ',' + Gr + ',' + B + ',0.85)';
+    g.fillRect(Math.random() * 256, Math.random() * 256, 1 + Math.random() * 3, 1 + Math.random() * 3);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(6, 6);
+  return t;
+}
+
 /* ---------- night sky, stars, red moon ---------- */
 const stars = (() => {
   const n = UX ? 220 : 380;
@@ -1091,8 +1139,8 @@ const stars = (() => {
 scene.add(stars);
 
 const moon = new THREE.Mesh(
-  new THREE.SphereGeometry(1.5, 40, 40),
-  new THREE.MeshBasicMaterial({ color: 0xffb6b1, fog: false, toneMapped: false })
+  new THREE.SphereGeometry(1.5, 48, 36),
+  new THREE.MeshBasicMaterial({ map: moonTexture(), color: 0xffb3a4, fog: false, toneMapped: false })
 );
 moon.position.set(3.4, 5.4, -12);
 scene.add(moon);
@@ -1110,48 +1158,55 @@ scene.add(moon);
 
 /* ---------- ground + far hills ---------- */
 const ground = new THREE.Mesh(
-  new THREE.CircleGeometry(34, 40),
-  new THREE.MeshStandardMaterial({ color: 0x170b0b, roughness: 1, metalness: 0 })
+  new THREE.CircleGeometry(40, 72),
+  new THREE.MeshStandardMaterial({ map: groundTexture(), color: 0x9a6a5a, roughness: 1, metalness: 0 })
 );
 ground.rotation.x = -Math.PI / 2;
+ground.receiveShadow = true;
 scene.add(ground);
 for (let i = 0; i < 5; i++) {
   const hill = new THREE.Mesh(
-    new THREE.ConeGeometry(1.6 + Math.random() * 2.4, 1.2 + Math.random() * 2, 6),
+    new THREE.ConeGeometry(1.6 + Math.random() * 2.4, 1.2 + Math.random() * 2, 11),
     new THREE.MeshStandardMaterial({ color: 0x140909, roughness: 1 })
   );
   hill.position.set(-5 + i * 3.4, 0, -12 - Math.random() * 3);
+  hill.castShadow = true;
+  hill.receiveShadow = true;
   scene.add(hill);
 }
 
 /* ---------- tree ---------- */
 const tree = new THREE.Group();
 const bark = new THREE.MeshStandardMaterial({ color: 0x2a160c, roughness: 0.9 });
-const trunk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.16, 1.05, 8), bark);
+const trunk1 = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.17, 1.05, 14), bark);
 trunk1.position.set(0.5, 0.52, 0);
 tree.add(trunk1);
-const trunk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 0.95, 8), bark);
+const trunk2 = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.11, 0.95, 14), bark);
 trunk2.position.set(0.85, 1.12, 0);
 trunk2.rotation.z = 0.35;
 tree.add(trunk2);
-const perch = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.07, 1.5, 8), bark);
+const perch = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.075, 1.5, 14), bark);
 perch.position.set(1.45, 1.5, 0);
 perch.rotation.z = -0.3;
 tree.add(perch);
-const lowBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.9, 6), bark);
+const lowBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.055, 0.9, 10), bark);
 lowBranch.position.set(0.2, 0.9, 0);
 lowBranch.rotation.z = -0.9;
 tree.add(lowBranch);
-const upBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.9, 6), bark);
+const upBranch = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.055, 0.9, 10), bark);
 upBranch.position.set(1.32, 2.12, 0);
 upBranch.rotation.z = 0.5;
 tree.add(upBranch);
 const canopyMat = new THREE.MeshStandardMaterial({ color: 0x27351f, roughness: 1 });
-[[1.9, 1.75, 1.6, 1.15], [1.25, 2.5, 1.5, 1.1], [0.55, 1.05, 1.3, 0.9], [2.05, 2.4, 1.1, 1.5]].forEach(([x, y, r, h]) => {
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), canopyMat);
+const canopyMat2 = new THREE.MeshStandardMaterial({ color: 0x2f4023, roughness: 1 });
+[[1.9, 1.75, 1.6, 1.15], [1.25, 2.5, 1.5, 1.1], [0.55, 1.05, 1.3, 0.9], [2.05, 2.4, 1.1, 1.5]].forEach(([x, y, r, h], i) => {
+  const cone = new THREE.Mesh(new THREE.ConeGeometry(r, h, 13), i % 2 ? canopyMat2 : canopyMat);
   cone.position.set(x, y, 0);
+  cone.rotation.z = i % 2 ? 0.07 : -0.07;
+  cone.rotation.y = i * 0.9;
   tree.add(cone);
 });
+tree.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
 scene.add(tree);
 
 /* ---------- samurai rig ---------- */
@@ -1179,12 +1234,28 @@ hakama.position.set(0, 0.52, 0);
 hakama.rotation.x = Math.PI;
 body.add(hakama);
 
-const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), dark);
-head.position.set(0, 1.18, 0);
+const head = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 14), new THREE.MeshStandardMaterial({ color: 0x201010, roughness: 0.7 }));
+head.position.set(0, 1.18, 0.01);
 body.add(head);
-const topknot = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), dark);
-topknot.position.set(-0.02, 1.32, 0);
+const kabuto = new THREE.Mesh(new THREE.SphereGeometry(0.135, 16, 14), dark);
+kabuto.position.set(0, 1.21, 0);
+kabuto.scale.y = 0.85;
+body.add(kabuto);
+const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.155, 0.16, 0.025, 20), dark);
+brim.position.set(0, 1.14, 0.02);
+brim.rotation.x = Math.PI / 2;
+body.add(brim);
+const crest = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.05, 0.05), redMetal);
+crest.position.set(0, 1.3, 0.075);
+crest.rotation.x = -0.35;
+body.add(crest);
+const topknot = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 8), dark);
+topknot.position.set(-0.03, 1.33, 0);
 body.add(topknot);
+const hair = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.005, 0.34, 8), dark);
+hair.position.set(-0.1, 1.18, -0.02);
+hair.rotation.z = 0.5;
+body.add(hair);
 const bladeGuard = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.16, 0.09), redMetal);
 bladeGuard.position.set(0, 1.06, 0.14);
 body.add(bladeGuard);
@@ -1202,13 +1273,19 @@ const legMat = dark;
 function arm(side) {
   const g = new THREE.Group();
   g.position.set(side * 0.2, 1.02, 0);
-  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.42, 8), dark);
+  const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.055, 0.42, 10), dark);
   sleeve.position.set(0, -0.21, 0);
   g.add(sleeve);
-  const pad = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 8), redMetal);
-  pad.position.set(0, 0.01, 0);
+  const guard = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.095, 0.02, 16), redMetal);
+  guard.position.set(0, -0.005, 0.005);
+  g.add(guard);
+  const pad = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 10), redMetal);
+  pad.position.set(0, 0.012, 0);
   g.add(pad);
-  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), redMetal);
+  const bracer = new THREE.Mesh(new THREE.CylinderGeometry(0.052, 0.052, 0.06, 10), redMetal);
+  bracer.position.set(0, -0.36, 0);
+  g.add(bracer);
+  const hand = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), redMetal);
   hand.position.set(0, -0.44, 0);
   g.add(hand);
   body.add(g);
@@ -1217,18 +1294,25 @@ function arm(side) {
 const armL = arm(-1);
 const armR = arm(1);
 
-/* sword group (attached to right hand) */
+/* sword group (attached to right hand) - tapered katana */
 const sword = new THREE.Group();
 sword.position.set(0.02, -0.46, -0.02);
-const blade = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.5, 0.008), steel);
+const handleMat = new THREE.MeshStandardMaterial({ color: 0x14110e, roughness: 0.5, metalness: 0.35 });
+const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.16, 10), handleMat);
+handle.position.set(0, -0.1, 0);
+sword.add(handle);
+const kashira = new THREE.Mesh(new THREE.SphereGeometry(0.013, 10, 10), handleMat);
+kashira.position.set(0, -0.185, 0);
+sword.add(kashira);
+const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.022, 0.012, 14), new THREE.MeshStandardMaterial({ color: 0xb8933c, roughness: 0.35, metalness: 0.85 }));
+tsuba.position.set(0, 0.015, 0);
+sword.add(tsuba);
+const blade = new THREE.Mesh(new THREE.ConeGeometry(0.0095, 0.55, 14), new THREE.MeshStandardMaterial({ color: 0xdbe4f0, roughness: 0.12, metalness: 1 }));
 blade.position.set(0, 0.3, 0);
 sword.add(blade);
-const kashira = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.09, 8), new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.6 }));
-kashira.position.set(0, 0.58, 0);
-sword.add(kashira);
-const tsuba = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.01, 10), new THREE.MeshStandardMaterial({ color: 0xb8933c, roughness: 0.4, metalness: 0.8 }));
-tsuba.position.set(0, 0.07, 0);
-sword.add(tsuba);
+const edgeLine = new THREE.Mesh(new THREE.BoxGeometry(0.0018, 0.55, 0.014), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, metalness: 1, emissive: 0x556677, emissiveIntensity: 0.18 }));
+edgeLine.position.set(0.0015, 0.3, 0);
+sword.add(edgeLine);
 sword.rotation.set(-0.5, 0, 0);
 armR.add(sword);
 
@@ -1243,6 +1327,7 @@ flashGlow.scale.set(0.7, 0.7, 1);
 sword.add(flashGlow);
 
 scene.add(sam);
+sam.traverse(o => { if (o.isMesh) { o.castShadow = true; } });
 
 /* ---------- dust particles ---------- */
 const dust = [];
@@ -1310,56 +1395,7 @@ function updateLeaves(dt) {
   }
 }
 
-/* ---------- audio: metallic katana "ching" ---------- */
-let actx = null;
-function ensureAudio() {
-  if (!actx) {
-    try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
-  }
-  if (actx.state === 'suspended') actx.resume();
-  return actx;
-}
-function shing(when) {
-  const ctx = ensureAudio();
-  if (!ctx) return;
-  const t = when != null ? when : ctx.currentTime;
-  const dur = 0.13;
-  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  const bp = ctx.createBiquadFilter();
-  bp.type = 'bandpass'; bp.frequency.value = 3300; bp.Q.value = 1.1;
-  const sw = ctx.createGain();
-  sw.gain.setValueAtTime(0.3, t);
-  sw.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  src.connect(bp).connect(sw).connect(ctx.destination);
-  src.start(t); src.stop(t + dur);
-  const ring = ctx.createOscillator();
-  ring.type = 'triangle';
-  ring.frequency.setValueAtTime(2580, t);
-  ring.frequency.exponentialRampToValueAtTime(1150, t + 0.55);
-  const rg = ctx.createGain();
-  rg.gain.setValueAtTime(0.0001, t);
-  rg.gain.exponentialRampToValueAtTime(0.5, t + 0.016);
-  rg.gain.exponentialRampToValueAtTime(0.001, t + 0.62);
-  ring.connect(rg).connect(ctx.destination);
-  ring.start(t); ring.stop(t + 0.64);
-  const ping = ctx.createOscillator();
-  ping.type = 'sine';
-  ping.frequency.setValueAtTime(5400, t);
-  ping.frequency.exponentialRampToValueAtTime(4300, t + 0.3);
-  const pg = ctx.createGain();
-  pg.gain.setValueAtTime(0.0001, t);
-  pg.gain.exponentialRampToValueAtTime(0.16, t + 0.022);
-  pg.gain.exponentialRampToValueAtTime(0.001, t + 0.38);
-  ping.connect(pg).connect(ctx.destination);
-  ping.start(t); ping.stop(t + 0.4);
-}
-const resumeAudio = () => { const c = ensureAudio(); if (c && c.state === 'running') shing(); };
-window.addEventListener('pointerdown', resumeAudio, { passive: true, once: false });
-window.addEventListener('keydown', resumeAudio);
+/* ---------- audio removed per request - the intro is silent ---------- */
 
 /* ---------- timeline ---------- */
 const LAND_T0 = 1.05, LAND_T1 = 1.58;
@@ -1410,10 +1446,11 @@ function frame(now) {
     sword.rotation.y = Math.sin(k * Math.PI) * 0.16;
     if (!didFlash) {
       didFlash = true;
-      shing();
       flashMat.opacity = 1;
       flashGlow.material.opacity = 0.9;
     }
+    /* tiny solar flare glint at the moment of full extension */
+    if (k > 0.82 && k < 0.86 && Math.floor(t * 30) % 2 === 0) flashGlow.material.opacity = 0.95;
     const fade = 1 - clamp01((t - DRAW_T1) / 0.4);
     flashMat.opacity = 0.9 * fade;
     flashGlow.material.opacity = 0.75 * fade;
@@ -1427,10 +1464,19 @@ function frame(now) {
     const s = easeCubic((t - LAND_T1) / 0.55);
     armL.rotation.x = lerp(-0.3, -0.05, s);
     body.rotation.x = lerp(0, 0.08, s);
+    hair.rotation.z = 0.5 + Math.sin(t * 2.4) * 0.06;
   }
-  /* camera dolly */
+  /* camera dolly + hand-held sway + impact kick */
   const ck = easeCubic(t / 2.6);
   camera.position.lerpVectors(camStart, camEnd, ck);
+  const impact = Math.max(0, 1 - (t - LAND_T1) / 0.9);
+  const swayX = Math.sin(t * 2.3) * 0.005 * (1 + impact);
+  const swayY = Math.cos(t * 1.7) * 0.0035 * (1 + impact);
+  camera.position.x += swayX;
+  camera.position.y += swayY;
+  const fovTarget = 46 + impact * 3.6 + Math.sin((t - LAND_T1) * 11) * 0.7 * impact + (t > 3.3 ? (3.3 - t) * 0.8 : 0);
+  camera.fov = Math.max(42, fovTarget);
+  camera.updateProjectionMatrix();
   camera.lookAt(lerp(-0.2, 1.15, ck), 1.5, 0);
   updateDust(0.016);
   updateLeaves(0.016);

@@ -1,4 +1,4 @@
-﻿const CACHE = 'shadow-v19';
+﻿const CACHE = 'shadow-v20';
 const APP_SHELL = [
   '/',
   '/static/manifest.webmanifest',
