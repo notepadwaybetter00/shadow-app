@@ -1166,6 +1166,47 @@ function updateDust(dt) {
   }
 }
 
+/* ---------- falling leaves ---------- */
+const leafMats = [0x7a2f1f, 0x5a3417, 0x8a3a28, 0x6b2417].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, side: THREE.DoubleSide }));
+const leaves = [];
+const LEAF_N = UX ? 10 : 16;
+function spawnLeaf() {
+  const leaf = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.1, 0.006), leafMats[Math.floor(Math.random() * leafMats.length)]);
+  const baseX = 0.4 + Math.random() * 2.4;
+  leaf.position.set(baseX, 2.6 + Math.random() * 3.6, -1.2 + Math.random() * 2.2);
+  leaf.rotation.z = Math.random() * Math.PI;
+  leaf.userData = {
+    baseX,
+    speed: 0.32 + Math.random() * 0.3,
+    amp: 0.25 + Math.random() * 0.35,
+    sway: 1.2 + Math.random() * 1.6,
+    phase: Math.random() * Math.PI * 2,
+    spinX: (Math.random() - 0.5) * 3,
+    spinZ: (Math.random() - 0.5) * 3,
+    drift: (Math.random() - 0.5) * 0.3
+  };
+  scene.add(leaf);
+  leaves.push(leaf);
+}
+for (let i = 0; i < LEAF_N; i++) spawnLeaf();
+function updateLeaves(dt) {
+  const t = (performance.now() - started) / 1000;
+  for (const leaf of leaves) {
+    const u = leaf.userData;
+    leaf.position.y -= u.speed * dt;
+    leaf.position.x = u.baseX + Math.sin(t * u.sway + u.phase) * u.amp;
+    leaf.position.z += u.drift * dt;
+    leaf.rotation.x += u.spinX * dt;
+    leaf.rotation.z += u.spinZ * dt;
+    if (leaf.position.y < 0.02) {
+      u.baseX = 0.4 + Math.random() * 2.4;
+      leaf.position.y = 2.6 + Math.random() * 3.6;
+      leaf.position.z = -1.2 + Math.random() * 2.2;
+      u.phase = Math.random() * Math.PI * 2;
+    }
+  }
+}
+
 /* ---------- audio: metallic katana "ching" ---------- */
 let actx = null;
 function ensureAudio() {
@@ -1289,6 +1330,7 @@ function frame(now) {
   camera.position.lerpVectors(camStart, camEnd, ck);
   camera.lookAt(lerp(-0.2, 1.15, ck), 1.5, 0);
   updateDust(0.016);
+  updateLeaves(0.016);
   /* stars drift */
   stars.rotation.y = t * 0.008;
   renderer.render(scene, camera);
