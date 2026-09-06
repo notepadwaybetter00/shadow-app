@@ -1,6 +1,6 @@
 {
-  "name": "Shadow - AI College Assistant",
-  "short_name": "Shadow",
+  "name": "Shadow chatbot",
+  "short_name": "Shadow chatbot",
   "description": "AI assistant for Rayat Bahra Institute of Engineering and Nano Technology, Hoshiarpur. Ask about admissions, fees, events, hostels and placements, plus explore campus videos.",
   "start_url": "/",
   "scope": "/",
