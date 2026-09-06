@@ -49,12 +49,22 @@ SYSTEM_PROMPT = (
     "(RBPU), Hoshiarpur campus (formerly Rayat Bahra Institute of Engineering and Nano "
     "Technology). Answer questions about admissions, courses, fees, scholarships, exams, "
     "campus facilities, sports, events and placements.\n\n"
+    "FORMATTING RULES (very important):\n"
+    "- Be thorough and detailed. Never give one-line answers, especially for fees, "
+    "scholarships, admissions or courses. Expand with all figures and details you have.\n"
+    "- Use bullet lists (each bullet starts with '- ') for categories, options and steps.\n"
+    "- For numeric breakdowns (fee slabs, scholarship tiers, eligibility marks, courses "
+    "lists), present a compact table using rows like '| Name | Amount/Details |'. No header "
+    "row needed, just | cells | separated rows.\n"
+    "- Do NOT mention images or say 'see the image'. The page images are shown automatically "
+    "below the answer.\n"
+    "- End your answer with the source page URL you used, as 'Source: rbpu.in/...'.\n\n"
     "When website content from rbpu.in is provided, answer ONLY from that content and "
-    "end your answer with the source page URL you used (e.g. 'Source: rbpu.in/...'). "
-    "If the answer is not in the provided content, briefly say it's handled by the "
-    "university office at rbpu.in and suggest contacting admission helpline.\n\n"
-    "When no website content is provided, answer from general knowledge but stay friendly "
-    "and keep answers short.\n\n"
+    "include every relevant number found there, even if you must repeat them. If the answer "
+    "is not in the provided content, briefly say it's handled by the university office and "
+    "suggest the admission helpline +91 99884 00354.\n\n"
+    "When no website content is provided, answer from general knowledge, stay friendly, "
+    "and keep it reasonably short.\n\n"
     "Courses offered at the institute:\n"
     + "\n".join("- " + c for c in COURSES)
 )
@@ -151,6 +161,18 @@ class KB:
                 break
         return picked
 
+    def images_for(self, results, cap=4):
+        seen, out = set(), []
+        for score, idx in results:
+            for u in self.chunks[idx].get("images", []):
+                if u in seen:
+                    continue
+                seen.add(u)
+                out.append(u)
+                if len(out) >= cap:
+                    return out
+        return out
+
 
 KB_PATH = os.path.join(BASE_DIR, "kb.json")
 kb = KB(KB_PATH)
@@ -161,7 +183,7 @@ def build_context(results):
     for score, idx in results:
         c = kb.chunks[idx]
         lines.append("\n--- " + c.get("url", "") + " | " + c.get("title", ""))
-        lines.append(c.get("text", "")[:1400])
+        lines.append(c.get("text", "")[:1600])
     return "\n".join(lines)
 
 
@@ -169,14 +191,19 @@ def offline_reply(message):
     text = message.lower()
     for keyword, reply in OFFLINE_ANSWERS.items():
         if re.search(rf"\b{re.escape(keyword)}s?\b", text):
-            return reply
-    results = kb.search(message, k=1, max_per_url=1)
+            return reply, kb.images_for(kb.search(message, k=4, max_per_url=1))
+    results = kb.search(message, k=3, max_per_url=2)
     if results:
-        score, idx = results[0]
-        chunk = kb.chunks[idx]
-        snippet = chunk.get("text", "")[:550]
-        return snippet + "\n\n(Source: " + chunk.get("url", "") + ")"
-    return "I can help with admissions, fees, courses, scholarships, exams, hostel, campus life, sports and placements. You can also check rbpu.in."
+        parts, srcs = [], set()
+        for score, idx in results[:2]:
+            chunk = kb.chunks[idx]
+            parts.append(chunk.get("text", "")[:700])
+            srcs.add(chunk.get("url", ""))
+        body = "\n\n".join(parts)
+        if srcs:
+            body += "\n\nSource: " + ", ".join(s for s in srcs)
+        return body, kb.images_for(results)
+    return "I can help with admissions, fees, courses, scholarships, exams, hostel, campus life, sports and placements. You can also check rbpu.in.", []
 
 
 def build_conversation(history):
@@ -190,7 +217,7 @@ def chat_reply(message, history):
     if client is None:
         return offline_reply(message)
 
-    results = kb.search(message)
+    results = kb.search(message, k=7, max_per_url=3)
     prompt = build_conversation(history[-8:])
     if prompt:
         prompt += "\n"
@@ -205,10 +232,13 @@ def chat_reply(message, history):
             contents=prompt,
             config=genai_types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
-                max_output_tokens=600,
+                max_output_tokens=900,
             ),
         )
-        return (response.text or "").strip() or offline_reply(message)
+        text = (response.text or "").strip()
+        if text:
+            return text, kb.images_for(results)
+        return offline_reply(message)
     except Exception:
         return offline_reply(message)
 
@@ -228,9 +258,10 @@ def chat():
     data = request.get_json()
     message = (data.get("message") or "").strip()
     if not message:
-        return jsonify({"reply": "Please type a message."})
+        return jsonify({"reply": "Please type a message.", "images": []})
     history = data.get("history") or []
-    return jsonify({"reply": chat_reply(message, history)})
+    reply, images = chat_reply(message, history)
+    return jsonify({"reply": reply, "images": images})
 
 
 if __name__ == "__main__":

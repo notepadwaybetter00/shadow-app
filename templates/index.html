@@ -160,6 +160,16 @@
     font-size: 14.5px; line-height: 1.45; white-space: pre-wrap;
     animation: msgIn 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   }
+  .bot { max-width: 96%; }
+  .msg table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 12.5px; }
+  .msg table td, .msg table th { border: 1px solid rgba(255,255,255,0.28); padding: 4px 8px; text-align: left; vertical-align: top; }
+  .msg ul { margin: 6px 0; padding-left: 18px; }
+  .msg p { margin: 4px 0; }
+  .msg a { color: #a5b4fc; word-break: break-all; }
+  .msgcode { font-family: Consolas, monospace; font-size: 12px; }
+  .imgrow { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 9px; }
+  .imgrow img { height: 120px; max-width: 100%; border-radius: 10px; border: 1px solid rgba(255,255,255,0.25); object-fit: cover; cursor: pointer; transition: transform 0.15s ease; }
+  .imgrow img:hover { transform: scale(1.04); }
   @keyframes msgIn { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
   .user {
     align-self: flex-end; background: linear-gradient(135deg, #6366f1, #a855f7);
@@ -458,13 +468,69 @@ const input = document.getElementById('input');
 const send = document.getElementById('send');
 let history = [];
 
-function addMsg(role, text) {
+function addMsg(role, text, images) {
   const div = document.createElement('div');
   div.className = 'msg ' + role;
-  div.textContent = text;
+  if (role === 'bot') div.innerHTML = renderRich(text) + buildImages(images);
+  else div.textContent = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
   history.push({ role, text });
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function inlineBold(s) { return s.replace(/\*\*(.+?)\*\*/g, '<b>$1</b>'); }
+function autolink(s) { return s.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>'); }
+
+function renderRich(text) {
+  const lines = escapeHtml(text).split(/\r?\n/);
+  const out = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trim();
+    if (!line) { i++; continue; }
+    if (line.startsWith('|')) {
+      const rows = [];
+      while (i < lines.length && lines[i].trim().startsWith('|')) {
+        const row = lines[i].trim();
+        if (!/^\|[\s\-:|]+\|$/.test(row)) {
+          const cells = row.slice(1, -1).split('|').map(c => inlineBold(autolink(c.trim())));
+          rows.push('<tr>' + cells.map(c => '<td>' + c + '</td>').join('') + '</tr>');
+        }
+        i++;
+      }
+      if (rows.length) out.push('<table><tbody>' + rows.join('') + '</tbody></table>');
+      continue;
+    }
+    if (/^[-•*]\s+/.test(line)) {
+      const items = [];
+      while (i < lines.length) {
+        const m = lines[i].trim().match(/^[-•*]\s+(.*)$/);
+        if (!m) break;
+        items.push('<li>' + inlineBold(autolink(m[1])) + '</li>');
+        i++;
+      }
+      if (items.length) out.push('<ul>' + items.join('') + '</ul>');
+      continue;
+    }
+    const para = [];
+    while (i < lines.length) {
+      const l = lines[i].trim();
+      if (!l || l.startsWith('|') || /^[-•*]\s+/.test(l)) break;
+      para.push(l);
+      i++;
+    }
+    if (para.length) out.push('<p>' + inlineBold(autolink(para.join(' '))) + '</p>');
+  }
+  return out.join('');
+}
+
+function buildImages(images) {
+  if (!images || !images.length) return '';
+  const a = images.map(u => '<a href="' + escapeHtml(u) + '" target="_blank" rel="noopener"><img src="' + escapeHtml(u) + '" alt="" loading="lazy"></a>').join('');
+  return '<div class="imgrow">' + a + '</div>';
 }
 
 function setBusy(busy) {
@@ -492,7 +558,7 @@ async function sendMessage() {
     });
     const data = await res.json();
     typing.remove();
-    addMsg('bot', data.reply);
+    addMsg('bot', data.reply, data.images || []);
   } catch (err) {
     typing.remove();
     addMsg('bot', 'Sorry, something went wrong. Try again.');
