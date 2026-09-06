@@ -253,6 +253,31 @@ def service_worker():
     return send_from_directory(app.static_folder, "sw.js")
 
 
+CONTACT_INFO = {
+    "name": "Rayat Bahra Professional University, Hoshiarpur Campus",
+    "phones": ["+91 99884 00354", "+91 99884 01864"],
+    "emails": ["admissionshspcampus@rayatbahra.com", "info@rayatbahra.com"],
+    "address": "V.P.O Bohan, Tehsil & Distt Hoshiarpur, Punjab-146101",
+}
+
+HELPLINE_INFO = {
+    "label": "Admission Helpline",
+    "phones": ["+91 99884 00354", "+91 83606 28189"],
+    "hours": "Monday to Saturday, 9 AM - 6 PM",
+    "note": "For application support and admission counselling.",
+}
+
+
+@app.route("/api/contact")
+def api_contact():
+    return jsonify(CONTACT_INFO)
+
+
+@app.route("/api/helpline")
+def api_helpline():
+    return jsonify(HELPLINE_INFO)
+
+
 @app.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json()

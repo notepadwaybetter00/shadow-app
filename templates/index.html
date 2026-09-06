@@ -104,6 +104,20 @@
   }
   #installBtn:hover { transform: translateY(-1px); box-shadow: 0 8px 22px rgba(168, 85, 247, 0.6); }
   #installBtn .ico { font-size: 14px; }
+  .mini-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12.5px; font-weight: 700; color: #fff;
+    padding: 8px 13px; border-radius: 999px; cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .mini-btn:hover { transform: translateY(-1px); background: rgba(255, 255, 255, 0.16); box-shadow: 0 6px 18px rgba(0,0,0,0.35); }
+  .mini-btn .ico { font-size: 13px; }
+  .mini-btn.helpline { border-color: rgba(34, 211, 238, 0.5); color: #cffafe; }
+  .mini-btn.helpline:hover { box-shadow: 0 6px 18px rgba(34, 211, 238, 0.25); }
+  .mini-btn.contact { border-color: rgba(52, 211, 153, 0.5); color: #d1fae5; }
+  .mini-btn.contact:hover { box-shadow: 0 6px 18px rgba(52, 211, 153, 0.25); }
   .dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399;
          box-shadow: 0 0 10px #34d399; animation: pulse 1.8s ease-in-out infinite; }
   @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
@@ -311,6 +325,39 @@
   .modal-caption { display: flex; align-items: center; justify-content: space-between; gap: 10px;
                    padding: 12px 16px; font-size: 13px; color: #c7d2fe; background: #0b0d1c; }
 
+  /* ---------- Contact / Helpline sheet ---------- */
+  .sheet {
+    position: fixed; inset: 0; z-index: 60;
+    display: none; align-items: center; justify-content: center; padding: 16px;
+    background: rgba(3, 4, 12, 0.7);
+    backdrop-filter: blur(8px);
+  }
+  .sheet.open { display: flex; animation: fadeIn 0.2s ease; }
+  .sheet-card {
+    position: relative;
+    width: min(92vw, 430px);
+    background: linear-gradient(160deg, #151833, #0d0f22);
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 18px; padding: 22px;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.6);
+    animation: popIn 0.3s cubic-bezier(0.22,1,0.36,1);
+  }
+  .sheet-card h3 { font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; gap: 9px; color: #eef2ff; }
+  .sheet-card .subtitle { font-size: 12px; color: #a5b4fc; margin-bottom: 8px; }
+  .sheet-row { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-top: 1px solid rgba(255,255,255,0.08); font-size: 13.5px; }
+  .sheet-row .lab { color: #a5b4fc; width: 72px; flex-shrink: 0; font-weight: 600; }
+  .sheet-row .val { color: #eef2ff; word-break: break-word; }
+  .sheet-row .val a { color: #c7d2fe; text-decoration: none; display: block; }
+  .sheet-row .val a:hover { text-decoration: underline; }
+  .sheet-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.08); color: #fff;
+    border: 1px solid rgba(255,255,255,0.18); font-size: 14px; font-weight: 700;
+    cursor: pointer; display: grid; place-items: center;
+  }
+  .sheet-close:hover { background: rgba(255,255,255,0.18); }
+
   footer.site-foot {
     position: relative; z-index: 2;
     text-align: center; font-size: 12px; color: #6b7280;
@@ -343,7 +390,9 @@
         <div class="sub">Rayat Bahra, Hoshiarpur</div>
       </div>
     </div>
-    <div style="display:flex; align-items:center; gap:10px;">
+    <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+      <button class="mini-btn helpline" id="helplineBtn"><span class="ico">&#9742;</span> Helpline</button>
+      <button class="mini-btn contact" id="contactBtn"><span class="ico">&#9993;</span> Contact Us</button>
       <button id="installBtn"><span class="ico">&#11015;</span> Install App</button>
       <div class="status"><span class="dot"></span> Live &middot; Gemini AI</div>
     </div>
@@ -390,6 +439,13 @@
         <span id="mcap"></span>
         <button class="modal-close" id="mclose">&times;</button>
       </div>
+    </div>
+  </div>
+
+<div class="sheet" id="sheet">
+    <div class="sheet-card">
+      <button class="sheet-close" id="sheetClose">&times;</button>
+      <div id="sheetBody"></div>
     </div>
   </div>
 
@@ -612,6 +668,73 @@ window.addEventListener('appinstalled', () => {
 });
 
 if (isIOS) installBtn.style.display = 'inline-flex';
+
+/* ---------- Contact / Helpline ---------- */
+const FALLBACK = {
+  contact: {
+    name: 'Rayat Bahra Professional University, Hoshiarpur Campus',
+    phones: ['+91 99884 00354', '+91 99884 01864'],
+    emails: ['admissionshspcampus@rayatbahra.com', 'info@rayatbahra.com'],
+    address: 'V.P.O Bohan, Tehsil & Distt Hoshiarpur, Punjab-146101'
+  },
+  helpline: {
+    label: 'Admission Helpline',
+    phones: ['+91 99884 00354', '+91 83606 28189'],
+    hours: 'Monday to Saturday, 9 AM - 6 PM',
+    note: 'For application support and admission counselling.'
+  }
+};
+const sheet = document.getElementById('sheet');
+const sheetBody = document.getElementById('sheetBody');
+const apiCache = {};
+
+function telHref(p) { return 'tel:+' + p.replace(/[^\d]/g, ''); }
+function mailHref(e) { return 'mailto:' + e; }
+function row(label, html) {
+  return '<div class="sheet-row"><div class="lab">' + label + '</div><div class="val">' + html + '</div></div>';
+}
+function phonesHtml(list) {
+  return list.map(p => '<a href="' + telHref(p) + '">' + escapeHtml(p) + '</a>').join('');
+}
+function emailsHtml(list) {
+  return list.map(e => '<a href="' + mailHref(e) + '">' + escapeHtml(e) + '</a>').join('');
+}
+
+function openSheet(kind) {
+  const d = apiCache[kind] || FALLBACK[kind];
+  if (kind === 'helpline') {
+    sheetBody.innerHTML =
+      '<h3><span style="color:#22d3ee">&#9742;</span> ' + escapeHtml(d.label) + '</h3>' +
+      '<div class="subtitle">24x7 admission &amp; counselling support</div>' +
+      row('Call', phonesHtml(d.phones || [])) +
+      row('Hours', escapeHtml(d.hours || '')) +
+      row('Note', escapeHtml(d.note || ''));
+  } else {
+    sheetBody.innerHTML =
+      '<h3><span style="color:#34d399">&#9993;</span> Contact Us</h3>' +
+      '<div class="subtitle">' + escapeHtml(d.name || '') + '</div>' +
+      row('Phone', phonesHtml(d.phones || [])) +
+      row('Email', emailsHtml(d.emails || [])) +
+      row('Address', escapeHtml(d.address || ''));
+  }
+  sheet.classList.add('open');
+}
+function loadAndOpen(url, kind) {
+  if (!apiCache[kind]) {
+    fetch(url)
+      .then(r => r.json())
+      .then(d => { apiCache[kind] = d; openSheet(kind); })
+      .catch(() => openSheet(kind));
+  } else {
+    openSheet(kind);
+  }
+}
+function closeSheet() { sheet.classList.remove('open'); }
+document.getElementById('helplineBtn').addEventListener('click', () => loadAndOpen('/api/helpline', 'helpline'));
+document.getElementById('contactBtn').addEventListener('click', () => loadAndOpen('/api/contact', 'contact'));
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
 /* ---------- Service worker (offline shell + install) ---------- */
 if ('serviceWorker' in navigator) {
