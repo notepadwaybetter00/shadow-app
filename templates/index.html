@@ -376,8 +376,40 @@
     border-top: 1px solid rgba(255,255,255,0.06);
   }
 
-   
-  @media (max-width: 640px) {
+  /* ---------- Logo startup animation ---------- */
+  #logoIntro {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: radial-gradient(120% 90% at 50% 100%, #2a0a0a 0%, #160606 45%, #0a0303 100%);
+    transition: opacity 0.55s ease, visibility 0.55s ease;
+  }
+  #logoIntro.hide { opacity: 0; visibility: hidden; pointer-events: none; }
+  #logoIntro .lg {
+    width: 150px; height: 150px; border-radius: 26px;
+    filter: drop-shadow(0 0 36px rgba(248, 113, 113, 0.55));
+    animation: logoIn 1s cubic-bezier(0.22, 1, 0.36, 1) both,
+               logoPulse 1.6s ease-in-out 1.05s infinite;
+  }
+  @keyframes logoIn {
+    from { transform: translateY(28px) scale(0.4); opacity: 0; }
+    55%  { opacity: 1; transform: translateY(-4px) scale(1.12); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes logoPulse {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50%      { transform: translateY(0) scale(1.05); }
+  }
+  #logoIntro .cap {
+    margin-top: 20px; font-size: 12px; letter-spacing: 4px; text-transform: uppercase;
+    color: rgba(254, 226, 226, 0.55);
+    animation: capIn 0.7s ease 1.15s both;
+  }
+  @keyframes capIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+    @media (max-width: 640px) {
     nav { padding: 12px 16px; }
     .brand .sub { display: none; }
     .hero { padding-top: 80px; padding-bottom: 40px; }
@@ -387,6 +419,11 @@
 </style>
 </head>
 <body>
+
+  <div id="logoIntro">
+    <img class="lg" src="/static/icons/icon-192.png" alt="Shadow">
+    <div class="cap">Shadow &middot; AI Campus Assistant</div>
+  </div>
 
   <div id="bgVideo"><iframe id="bgFrame" allow="autoplay; encrypted-media" title="Campus background video"></iframe></div>
   <div class="bg-tint"></div>
@@ -749,6 +786,14 @@ sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
 window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
 
+
+/* ---------- Logo startup animation ---------- */
+const lid = document.getElementById('logoIntro');
+if (lid) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  setTimeout(() => lid.classList.add('hide'), reduce ? 120 : 2500);
+  setTimeout(() => { if (lid.parentNode) lid.parentNode.removeChild(lid); }, reduce ? 700 : 3200);
+}
 
 /* ---------- Service worker (offline shell + install) ---------- */
 if ('serviceWorker' in navigator) {
