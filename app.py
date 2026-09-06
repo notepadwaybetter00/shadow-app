@@ -1,11 +1,22 @@
+import gzip
 import json
 import math
 import os
 import re
 
-from flask import Flask, jsonify, render_template, request, send_from_directory
+from flask import Flask, Response, jsonify, render_template, request, send_from_directory
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+_VENDOR_RAW = None
+_VENDOR_GZ = None
+try:
+    with open(os.path.join(BASE_DIR, "static", "vendor", "three.module.js"), "rb") as _f:
+        _VENDOR_RAW = _f.read()
+    _VENDOR_GZ = gzip.compress(_VENDOR_RAW, mtime=0)
+except OSError:
+    pass
 
 
 def read_api_key():
@@ -251,6 +262,24 @@ def index():
 @app.route("/sw.js")
 def service_worker():
     return send_from_directory(app.static_folder, "sw.js")
+
+
+@app.route("/static/vendor/three.module.js")
+def vendor_three():
+    if _VENDOR_RAW is None:
+        return "not found", 404
+    accept = request.headers.get("Accept-Encoding", "")
+    if "gzip" in accept:
+        return Response(
+            _VENDOR_GZ,
+            mimetype="text/javascript",
+            headers={
+                "Content-Encoding": "gzip",
+                "Vary": "Accept-Encoding",
+                "Cache-Control": "public, max-age=86400",
+            },
+        )
+    return Response(_VENDOR_RAW, mimetype="text/javascript", headers={"Cache-Control": "public, max-age=86400"})
 
 
 CONTACT_INFO = {
