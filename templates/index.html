@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shadow - AI College Assistant | Rayat Bahra Hoshiarpur</title>
 <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="modulepreload" href="/static/vendor/three.module.js">
   <link rel="icon" type="image/png" href="/static/favicon.png">
 <meta name="theme-color" content="#05060f">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -396,6 +397,7 @@
     position: absolute; left: 0; right: 0; bottom: 10vh;
     text-align: center; z-index: 2; pointer-events: none;
   }
+  #splashStatus { margin-top: 10px; font-size: 11px; letter-spacing: 1px; color: #f9a8a8; opacity: 0.8; }
   .splash-title {
     font-size: 30px; font-weight: 800; letter-spacing: 5px;
     color: #ffe4e6; text-transform: uppercase;
@@ -449,6 +451,7 @@
     <div class="splash-boot">
       <div class="splash-title">SHADOW <span>chatbot</span></div>
       <div class="splash-sub">the moonlit protector</div>
+      <div id="splashStatus"></div>
     </div>
     <div id="splashLegacy" aria-hidden="true">
     <svg viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg">
@@ -883,6 +886,7 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); 
 
 /* ---------- Splash fade-out (3D cinematic intro or SVG fallback) ---------- */
 const splashEl = document.getElementById('splash');
+const splashStatus = document.getElementById('splashStatus');
 let splashDone = false;
 function finishSplash() {
   if (splashDone) return;
@@ -891,9 +895,16 @@ function finishSplash() {
   setTimeout(() => { if (splashEl.parentNode) splashEl.parentNode.removeChild(splashEl); }, 900);
 }
 window.__splashFinish = finishSplash;
-window.addEventListener('load', () => {
-  setTimeout(() => { if (!window.__s3dActive) finishSplash(); }, 2600);
-});
+/* WebGL unavailable / reduced motion -> skip the intro instantly */
+const noGL = !window.WebGLRenderingContext || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (noGL) {
+  if (splashStatus) splashStatus.textContent = !window.WebGLRenderingContext ? '3D intro unavailable (WebGL off)' : '';
+  setTimeout(finishSplash, 400);
+} else {
+  window.addEventListener('load', () => {
+    setTimeout(() => { if (!window.__s3dActive) finishSplash(); }, 9000);
+  });
+}
 
 /* ---------- Service worker (offline shell + install) ---------- */
 if ('serviceWorker' in navigator) {
@@ -925,6 +936,8 @@ try {
 
 window.__s3dActive = true;
 splash.classList.add('mode3d');
+const sst = document.getElementById('splashStatus');
+if (sst) sst.textContent = '';
 
 const UX = /Android|iPhone|iPad/i.test(navigator.userAgent);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, UX ? 1.5 : 2));
