@@ -401,9 +401,43 @@
   }
   .bar.top { top: 0; }
   .bar.bottom { bottom: 0; }
-  #splash.mode3d .bar.top { animation: barsIn 0.8s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
-  #splash.mode3d .bar.bottom { animation: barsIn 0.8s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
+  .bar.top { animation: barsIn 0.8s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
+  .bar.bottom { animation: barsIn 0.8s 0.15s cubic-bezier(0.22,1,0.36,1) both; }
   @keyframes barsIn { from { height: 0; } to { height: 8vh; } }
+  .sam-seat {
+    transform-box: fill-box; transform-origin: 50% 100%;
+    animation: landIn 0.7s cubic-bezier(0.22,1,0.36,1) 0.95s both,
+               breathe 2.4s 1.8s ease-in-out infinite alternate;
+  }
+  @keyframes landIn {
+    0% { transform: translateY(-170%); opacity: 0; }
+    55% { transform: translateY(0); opacity: 1; }
+    70% { transform: translateY(-16%); }
+    82% { transform: translateY(4%); }
+    100% { transform: translateY(0); }
+  }
+  @keyframes breathe { from { transform: translateY(0) scaleY(1); } to { transform: translateY(-1.5%) scaleY(1.025); } }
+  .katana-g {
+    transform-box: fill-box; transform-origin: 15% 90%;
+    animation: drawBlade 0.3s cubic-bezier(0.22,1,0.36,1) 2.75s both;
+  }
+  @keyframes drawBlade { 0% { transform: rotate(88deg); opacity: 0; } 100% { transform: rotate(0deg); opacity: 1; } }
+  .gleam {
+    opacity: 0; transform-box: fill-box; transform-origin: center;
+    animation: gleam 0.55s 2.78s ease-out both;
+  }
+  @keyframes gleam {
+    0% { opacity: 0; transform: scale(0.4); }
+    30% { opacity: 0.95; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.7); }
+  }
+  .fallleaf { animation: leafFall linear infinite; transform-box: fill-box; }
+  @keyframes leafFall {
+    0% { transform: translateX(0) translateY(0) rotate(0deg); opacity: 0; }
+    6% { opacity: 0.85; }
+    45% { transform: translateX(30px) translateY(150px) rotate(160deg); opacity: 0.85; }
+    100% { transform: translateX(-28px) translateY(330px) rotate(340deg); opacity: 0.7; }
+  }
   .splash-boot {
     position: absolute; left: 0; right: 0; bottom: 10vh;
     text-align: center; z-index: 2; pointer-events: none;
@@ -413,13 +447,13 @@
     font-size: 30px; font-weight: 800; letter-spacing: 5px;
     color: #ffe4e6; text-transform: uppercase;
     text-shadow: 0 0 26px rgba(248, 113, 113, 0.6);
-    animation: fadeUp 0.9s 0.35s cubic-bezier(0.22,1,0.36,1) both;
+    animation: fadeUp 0.9s 4.55s cubic-bezier(0.22,1,0.36,1) both;
   }
   .splash-title span { color: #f87171; }
   .splash-sub {
     margin-top: 8px; font-size: 12px; letter-spacing: 3px; text-transform: uppercase;
     color: rgba(254, 226, 226, 0.6);
-    animation: fadeUp 0.9s 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    animation: fadeUp 0.9s 4.75s cubic-bezier(0.22,1,0.36,1) both;
   }
   @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
   .moon-glow { animation: moonPulse 3.4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
@@ -508,20 +542,29 @@
         <path d="M0,360 L0,318 C96,302 168,312 244,296 C330,278 386,300 462,286 C524,278 566,298 640,290 L640,360 Z"/>
         <path d="M0,360 L0,336 C120,326 210,332 310,322 C424,310 520,326 640,318 L640,360 Z"/>
       </g>
-      <g class="samurai" fill="#000">
-        <path d="M316,198 C296,196 288,208 282,226 C276,244 280,256 274,268" stroke="#000" stroke-width="8" fill="none"/>
-        <polygon points="204,234 216,204 268,196 330,190 392,196 444,204 456,234 430,224 380,205 280,205 230,224"/>
-        <polygon points="300,196 360,196 330,176"/>
-        <circle cx="330" cy="248" r="17"/>
-        <circle cx="330" cy="224" r="6"/>
-        <rect x="322" y="258" width="16" height="14"/>
-        <polygon points="308,268 352,268 366,300 352,322 308,322 294,300"/>
-        <polygon points="308,272 292,292 306,306 312,286"/>
-        <polygon points="352,272 368,296 356,302 344,284"/>
-        <line x1="352" y1="286" x2="404" y2="318" stroke="#000" stroke-width="7" stroke-linecap="round"/>
-        <line x1="346" y1="276" x2="356" y2="288" stroke="#000" stroke-width="9" stroke-linecap="round"/>
-        <rect x="318" y="320" width="14" height="8" rx="3"/>
-        <rect x="332" y="320" width="14" height="8" rx="3"/>
+      <g class="tree-svg">
+        <path d="M118,360 C120,304 126,246 148,190 L162,196 C144,248 140,306 142,360 Z" fill="#060302"/>
+        <path d="M148,190 C148,168 142,150 130,136" stroke="#060302" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <path d="M148,190 C166,168 192,154 226,150 L232,160 C202,164 176,176 160,194 Z" fill="#060302"/>
+        <path d="M148,190 C136,166 128,148 126,128" stroke="#060302" stroke-width="7" fill="none" stroke-linecap="round"/>
+        <circle cx="122" cy="108" r="15" fill="#0d130d"/>
+        <circle cx="140" cy="94" r="20" fill="#0d130d"/>
+        <circle cx="160" cy="110" r="14" fill="#0d130d"/>
+        <circle cx="98" cy="132" r="13" fill="#0d130d"/>
+      </g>
+      <g class="sam-seat">
+        <ellipse cx="226" cy="154" rx="13" ry="5" fill="#000"/>
+        <path d="M212,152 L240,152 L236,130 L216,130 Z" fill="#000"/>
+        <circle cx="226" cy="122" r="10" fill="#000"/>
+        <circle cx="224" cy="111" r="4" fill="#000"/>
+        <path d="M218,118 C204,120 196,128 192,142" stroke="#000" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <g class="katana-g">
+          <g transform="translate(238,154)">
+            <line class="hilt" x1="0" y1="2" x2="10" y2="8" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+            <line class="blade" x1="0" y1="0" x2="-8" y2="-56" stroke="#e8ecf4" stroke-width="3" stroke-linecap="round"/>
+            <circle class="gleam" cx="-8" cy="-56" r="7" fill="#fff"/>
+          </g>
+        </g>
       </g>
       <g class="raven">
         <g class="raven-inner" transform="translate(46,88)">
@@ -532,6 +575,17 @@
           <path class="wing" d="M30,16 C36,2 52,-2 60,4 C50,8 42,10 30,16 Z" fill="#000"/>
           <path class="wing2" d="M26,15 C30,1 44,-6 54,0 C46,5 38,8 26,15 Z" fill="#000"/>
         </g>
+      </g>
+      <g class="leaf-wrap">
+        <ellipse class="fallleaf" cx="80"  cy="10" rx="5.5" ry="3" fill="#8a3a28" style="animation-duration:4.4s; animation-delay:0s"/>
+        <ellipse class="fallleaf" cx="176" cy="26" rx="5"  ry="2.8" fill="#6b2417" style="animation-duration:5s; animation-delay:.8s"/>
+        <ellipse class="fallleaf" cx="288" cy="8"  rx="5.5" ry="3" fill="#7a2f1f" style="animation-duration:3.7s; animation-delay:1.5s"/>
+        <ellipse class="fallleaf" cx="386" cy="20" rx="4.8" ry="2.6" fill="#5a3417" style="animation-duration:4.9s; animation-delay:.3s"/>
+        <ellipse class="fallleaf" cx="492" cy="6"  rx="5" ry="2.8" fill="#8a3a28" style="animation-duration:4.1s; animation-delay:2.1s"/>
+        <ellipse class="fallleaf" cx="576" cy="30" rx="5.2" ry="2.9" fill="#7a2f1f" style="animation-duration:5.3s; animation-delay:1s"/>
+        <ellipse class="fallleaf" cx="120" cy="48" rx="4.8" ry="2.6" fill="#6b2417" style="animation-duration:6s; animation-delay:2.6s"/>
+        <ellipse class="fallleaf" cx="424" cy="42" rx="5.4" ry="3"  fill="#5a3417" style="animation-duration:4.6s; animation-delay:3.2s"/>
+        <ellipse class="fallleaf" cx="248" cy="34" rx="4.8" ry="2.6" fill="#8a3a28" style="animation-duration:5.6s; animation-delay:1.8s"/>
       </g>
     </svg>
     </div>
@@ -920,18 +974,16 @@ function finishSplash() {
   setTimeout(() => { if (splashEl.parentNode) splashEl.parentNode.removeChild(splashEl); }, 900);
 }
 window.__splashFinish = finishSplash;
-/* WebGL unavailable / reduced motion -> skip the intro instantly */
-const noGL = !window.WebGLRenderingContext || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-if (noGL) {
-  const why = !window.WebGLRenderingContext ? 'WebGL is OFF in this browser/device' : 'reduced-motion is enabled';
-  if (splashStatus) splashStatus.textContent = '3D intro unavailable (' + why + ')';
-  showDiag('3D intro skipped: ' + why);
-  setTimeout(finishSplash, 600);
+/* The CSS cinematic scene below always plays. The 3D engine upgrades it when available. */
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+if (reducedMotion) {
+  setTimeout(finishSplash, 60);
 } else {
   window.addEventListener('load', () => {
-    setTimeout(() => { if (!window.__s3dActive) { showDiag('3D engine did not start in 9 seconds - showing fallback intro'); finishSplash(); } }, 9000);
+    setTimeout(() => { if (!window.__s3dActive) finishSplash(); }, 5600);
   });
 }
+setTimeout(() => finishSplash(), 10000);
 
 /* ---------- Service worker (offline shell + install) ---------- */
 if ('serviceWorker' in navigator) {
