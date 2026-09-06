@@ -69,6 +69,17 @@
     to   { transform: translate3d(60px, -40px, 0) scale(1.15); }
   }
 
+  #diag {
+    position: fixed; top: 12px; right: 12px; z-index: 200;
+    max-width: 86vw;
+    background: rgba(10, 4, 4, 0.92);
+    border: 1px solid #f87171;
+    color: #fecaca; font-size: 11.5px; line-height: 1.5;
+    padding: 8px 11px; border-radius: 10px; display: none;
+    white-space: pre-line; pointer-events: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  }
+
   /* ---------- Nav ---------- */
   nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 10;
@@ -443,6 +454,8 @@
 </style>
 </head>
 <body>
+
+  <div id="diag"></div>
 
   <div id="splash">
     <div class="bar top"></div>
@@ -888,6 +901,18 @@ window.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); 
 const splashEl = document.getElementById('splash');
 const splashStatus = document.getElementById('splashStatus');
 let splashDone = false;
+const diag = document.getElementById('diag');
+let diagTimer;
+function showDiag(m) {
+  if (!diag) return;
+  diag.textContent = m;
+  diag.style.display = 'block';
+  clearTimeout(diagTimer);
+  diagTimer = setTimeout(() => { diag.style.display = 'none'; }, 20000);
+}
+window.__diag = showDiag;
+window.addEventListener('error', e => showDiag('3D engine error: ' + (e.message || 'unknown')), true);
+window.addEventListener('unhandledrejection', e => showDiag('3D engine rejected: ' + ((e.reason && e.reason.message) || e.reason)), true);
 function finishSplash() {
   if (splashDone) return;
   splashDone = true;
@@ -898,11 +923,13 @@ window.__splashFinish = finishSplash;
 /* WebGL unavailable / reduced motion -> skip the intro instantly */
 const noGL = !window.WebGLRenderingContext || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 if (noGL) {
-  if (splashStatus) splashStatus.textContent = !window.WebGLRenderingContext ? '3D intro unavailable (WebGL off)' : '';
-  setTimeout(finishSplash, 400);
+  const why = !window.WebGLRenderingContext ? 'WebGL is OFF in this browser/device' : 'reduced-motion is enabled';
+  if (splashStatus) splashStatus.textContent = '3D intro unavailable (' + why + ')';
+  showDiag('3D intro skipped: ' + why);
+  setTimeout(finishSplash, 600);
 } else {
   window.addEventListener('load', () => {
-    setTimeout(() => { if (!window.__s3dActive) finishSplash(); }, 9000);
+    setTimeout(() => { if (!window.__s3dActive) { showDiag('3D engine did not start in 9 seconds - showing fallback intro'); finishSplash(); } }, 9000);
   });
 }
 
@@ -927,17 +954,25 @@ const canvas = document.getElementById('splashCanvas');
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 function no3d() { window.__s3dActive = false; return; }
-if (!canvas || !splash || reduced || !window.WebGLRenderingContext) no3d();
+if (!canvas || !splash || reduced || !window.WebGLRenderingContext) {
+  const why = !window.WebGLRenderingContext ? 'WebGL off' : (reduced ? 'reduced-motion' : 'missing DOM');
+  if (window.__diag) window.__diag('3D engine: skipped (' + why + ')');
+  no3d();
+}
 
 let renderer;
 try {
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-} catch (e) { no3d(); return; }
+} catch (e) {
+  if (window.__diag) window.__diag('3D engine: WebGL init failed - ' + e.message);
+  no3d(); return;
+}
 
 window.__s3dActive = true;
 splash.classList.add('mode3d');
 const sst = document.getElementById('splashStatus');
 if (sst) sst.textContent = '';
+if (window.__diag) window.__diag('3D engine: loaded OK, starting scene');
 
 const UX = /Android|iPhone|iPad/i.test(navigator.userAgent);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, UX ? 1.5 : 2));
@@ -1346,8 +1381,10 @@ function frame(now) {
   /* stars drift */
   stars.rotation.y = t * 0.008;
   renderer.render(scene, camera);
+  if (window.__diagOnce) { window.__diagOnce = false; if (window.__diag) window.__diag('3D engine: rendering frames (intro playing)'); }
   requestAnimationFrame(frame);
 }
+window.__diagOnce = true;
 requestAnimationFrame(frame);
 </script>
 </body>
