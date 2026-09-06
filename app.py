@@ -1,17 +1,23 @@
+import json
+import math
 import os
 import re
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
 def read_api_key():
     env_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if env_key:
         return env_key
-    key_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "api_key.txt")
+    key_file = os.path.join(BASE_DIR, "api_key.txt")
     if os.path.exists(key_file):
         with open(key_file) as f:
             return f.read().strip()
     return ""
+
 
 API_KEY = read_api_key()
 MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
@@ -39,29 +45,124 @@ COURSES = [
 ]
 
 SYSTEM_PROMPT = (
-    "You are Shadow, the official AI assistant of Rayat Bahra Institute of Engineering "
-    "and Nano Technology, Hoshiarpur campus. Answer questions about admissions, courses, "
-    "fees, scholarships, exams, timetables, campus facilities, and student services at this "
-    "institute. Keep answers short and friendly. If you don't know, say you'll connect them "
-    "with the college office.\n\n"
+    "You are Shadow, the official AI assistant of Rayat Bahra Professional University "
+    "(RBPU), Hoshiarpur campus (formerly Rayat Bahra Institute of Engineering and Nano "
+    "Technology). Answer questions about admissions, courses, fees, scholarships, exams, "
+    "campus facilities, sports, events and placements.\n\n"
+    "When website content from rbpu.in is provided, answer ONLY from that content and "
+    "end your answer with the source page URL you used (e.g. 'Source: rbpu.in/...'). "
+    "If the answer is not in the provided content, briefly say it's handled by the "
+    "university office at rbpu.in and suggest contacting admission helpline.\n\n"
+    "When no website content is provided, answer from general knowledge but stay friendly "
+    "and keep answers short.\n\n"
     "Courses offered at the institute:\n"
     + "\n".join("- " + c for c in COURSES)
 )
 
 # Offline fallback answers used only when no API key is set or the API fails.
 OFFLINE_ANSWERS = {
-    "admission": "Admissions are open at Rayat Bahra Institute of Engineering and Nano Technology, Hoshiarpur! Applications are accepted on the institute website.",
+    "admission": "Admissions are open at Rayat Bahra Professional University, Hoshiarpur! Applications are accepted on rbpu.in / admissions.rbpu.in. Contact the admission helpline +91 99884 00354.",
     "course": "We offer B.Tech in Computer Science and Engineering, IT, Mechanical, Civil, as well as CSE specializations in AI & Machine Learning, Data Science, IoT, and Cyber Security.",
     "btech": "We offer B.Tech in Computer Science and Engineering, IT, Mechanical, Civil, as well as CSE specializations in AI & Machine Learning, Data Science, IoT, and Cyber Security.",
     "branch": "We offer B.Tech in Computer Science and Engineering, IT, Mechanical, Civil, as well as CSE specializations in AI & Machine Learning, Data Science, IoT, and Cyber Security.",
-    "fee": "Fee details are available on the institute portal under 'Fee Structure', or visit the accounts office at the Hoshiarpur campus.",
-    "scholarship": "There are merit-based and need-based scholarships at Rayat Bahra. Contact the student services office for forms.",
-    "exam": "Midterm exams start next month. Check your timetable on the student portal for exact dates.",
+    "eligib": "Eligibility for UG degrees generally requires 10+2 from a recognized board with minimum aggregate marks as per the program. See the specific program page on rbpu.in.",
+    "rbuset": "RBUSET is the Rayat Bahra University entrance test. Registration for RBUSET 2026 is open at rbpu.in/rbpuset-2026 and applications are submitted at admissions.rbpu.in.",
+    "rbpuset": "RBUSET is the Rayat Bahra University entrance test. Registration for RBUSET 2026 is open at rbpu.in/rbpuset-2026 and applications are submitted at admissions.rbpu.in.",
+    "exam": "RBPUSET is the university entrance exam. Check rbpu.in/rbpuset-2026 for registration and dates. Midterm exams use the timetable on the student portal.",
+    "fee": "Fee details are published on rbpu.in under the program pages and the admission portal admissions.rbpu.in. Contact the accounts office for exact figures.",
+    "scholarship": "RBPU offers merit and need-based scholarships with up to 100% tuition fee waiver, plus sports scholarships up to 60% fee waiver. Details are on rbpu.in.",
+    "hostel": "Hostel rooms are available on a first-come basis. Apply through the hostel office at the Hoshiarpur campus. See rbpu.in for hostel capacity and facilities.",
     "library": "The library is open Monday-Saturday from 8 AM to 8 PM. A student ID is required to issue books.",
-    "hostel": "Hostel rooms are available on a first-come basis. Apply through the hostel office at the Hoshiarpur campus by next Friday.",
     "canteen": "The canteen is open from 8 AM to 6 PM and serves breakfast, lunch, and snacks.",
-    "placement": "The placement cell conducts campus drives every semester. Register your resume on the portal.",
+    "placement": "RBPU's placement cell has 1175+ recruiters who visited, 8100+ jobs offered, and the highest package is 1.25+ Crore. See rbpu.in/placements for details.",
+    "sports": "RBPU has sports scholarships up to 60% fee waiver and an annual sports meet. Sports facilities are described on rbpu.in.",
+    "event": "RBPU hosts fests and events like Fashionista and the Annual Fest. Check rbpu.in and news.rbpu.in for the latest events.",
+    "fest": "RBPU hosts big annual fests and cultural events. The latest event updates are on news.rbpu.in.",
+    "contact": "Admission helpline: +91 99884 00354. Hoshiarpur Campus, V.P.O Bohan, Tehsil & Distt Hoshiarpur, Punjab-146101.",
 }
+
+STOPWORDS = set(
+    """
+    a an the and or but if then else for from with without of in on at by to into
+    what which who whom whose how why when where is are was were be been being
+    do does did done have has had having can could will would shall should may
+    might must not n't no yes please tell me my your our their this that these
+    those about about between under over above through during before after again
+    further once here there all any both each few more most other some such only
+    own same so than too very just also its it's ok okay i you we they rbpu rayat bahra
+    """.split()
+)
+
+
+def tokenize(text):
+    return [t for t in re.findall(r"[a-z0-9]+", text.lower()) if len(t) > 2 and t not in STOPWORDS]
+
+
+class KB:
+    def __init__(self, path):
+        self.chunks = []
+        self.doc_freq = {}
+        self.doc_tokens = []
+        self.num_docs = 0
+        self.vectors = []
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            self.chunks = data.get("chunks", [])
+            self.vectors = data.get("vectors", [])
+            self.num_docs = len(self.chunks)
+            for c in self.chunks:
+                toks = tokenize(c.get("text", ""))
+                self.doc_tokens.append(toks)
+                for t in set(toks):
+                    self.doc_freq[t] = self.doc_freq.get(t, 0) + 1
+        except Exception:
+            self.chunks = []
+
+    def idf(self, term):
+        n = self.num_docs
+        df = self.doc_freq.get(term, 0)
+        return math.log((1 + n) / (1 + df)) + 1 if n else 0
+
+    def search(self, query, k=6, max_per_url=2):
+        qtoks = tokenize(query)
+        if not qtoks:
+            return []
+        scores = []
+        for idx, toks in enumerate(self.doc_tokens):
+            tf = {}
+            for t in toks:
+                tf[t] = tf.get(t, 0) + 1
+            score = 0.0
+            for t in set(qtoks):
+                if t in tf:
+                    score += (1 + math.log(tf[t])) * self.idf(t)
+            if score > 0:
+                scores.append((score, idx))
+        scores.sort(key=lambda x: -x[0])
+        picked, per_url = [], {}
+        for score, idx in scores:
+            url = self.chunks[idx].get("url", "")
+            per_url[url] = per_url.get(url, 0) + 1
+            if per_url[url] > max_per_url:
+                continue
+            picked.append((score, idx))
+            if len(picked) >= k:
+                break
+        return picked
+
+
+KB_PATH = os.path.join(BASE_DIR, "kb.json")
+kb = KB(KB_PATH)
+
+
+def build_context(results):
+    lines = ["Relevant content from the official website rbpu.in:"]
+    for score, idx in results:
+        c = kb.chunks[idx]
+        lines.append("\n--- " + c.get("url", "") + " | " + c.get("title", ""))
+        lines.append(c.get("text", "")[:1400])
+    return "\n".join(lines)
 
 
 def offline_reply(message):
@@ -69,7 +170,13 @@ def offline_reply(message):
     for keyword, reply in OFFLINE_ANSWERS.items():
         if re.search(rf"\b{re.escape(keyword)}s?\b", text):
             return reply
-    return "I can help with admissions, fees, exams, scholarships, hostel, library, canteen, and placements."
+    results = kb.search(message, k=1, max_per_url=1)
+    if results:
+        score, idx = results[0]
+        chunk = kb.chunks[idx]
+        snippet = chunk.get("text", "")[:550]
+        return snippet + "\n\n(Source: " + chunk.get("url", "") + ")"
+    return "I can help with admissions, fees, courses, scholarships, exams, hostel, campus life, sports and placements. You can also check rbpu.in."
 
 
 def build_conversation(history):
@@ -83,9 +190,12 @@ def chat_reply(message, history):
     if client is None:
         return offline_reply(message)
 
+    results = kb.search(message)
     prompt = build_conversation(history[-8:])
     if prompt:
         prompt += "\n"
+    if results:
+        prompt += build_context(results) + "\n\n"
     prompt += "User: " + message
     prompt += "\nBot:"
 
@@ -95,7 +205,7 @@ def chat_reply(message, history):
             contents=prompt,
             config=genai_types.GenerateContentConfig(
                 system_instruction=SYSTEM_PROMPT,
-                max_output_tokens=500,
+                max_output_tokens=600,
             ),
         )
         return (response.text or "").strip() or offline_reply(message)
