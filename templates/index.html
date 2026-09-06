@@ -385,7 +385,9 @@
   }
   #logoIntro.hide { opacity: 0; visibility: hidden; pointer-events: none; }
   #logoIntro .lg {
-    width: 150px; height: 150px; border-radius: 26px;
+    width: min(40vw, 40vh, 320px);
+    height: min(40vw, 40vh, 320px);
+    border-radius: 26px;
     filter: drop-shadow(0 0 36px rgba(248, 113, 113, 0.55));
     animation: logoIn 1s cubic-bezier(0.22, 1, 0.36, 1) both,
                logoPulse 1.6s ease-in-out 1.05s infinite;
