@@ -365,14 +365,6 @@
     border-top: 1px solid rgba(255,255,255,0.06);
   }
 
-  .deco-tree {
-    position: fixed; left: 4px; bottom: 0; z-index: 1;
-    width: clamp(120px, 17vw, 205px);
-    opacity: 0.92;
-    pointer-events: none;
-    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.65));
-  }
-
   /* ---------- Splash / startup animation ---------- */
   #splash {
     position: fixed; inset: 0; z-index: 100;
@@ -424,7 +416,6 @@
     .hero { padding-top: 80px; padding-bottom: 40px; }
     .card { height: 80vh; }
     .videos { padding-top: 50px; }
-    .deco-tree { width: 110px; opacity: 0.7; }
   }
 </style>
 </head>
@@ -507,35 +498,6 @@
   <div class="orb a"></div>
   <div class="orb b"></div>
   <div class="orb c"></div>
-
-  <svg class="deco-tree" viewBox="0 0 200 232" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <g stroke="#060302" stroke-width="9" stroke-linecap="round" fill="none">
-      <path d="M34,232 C36,180 42,132 62,98"/>
-      <path d="M34,232 C44,200 52,170 66,146"/>
-      <path d="M62,98 C80,72 110,48 150,28"/>
-      <path d="M150,28 C164,16 178,10 186,6"/>
-      <path d="M108,52 C118,42 130,34 138,30"/>
-      <path d="M66,120 C92,112 124,106 160,100"/>
-      <path d="M62,98 C56,84 50,76 44,70"/>
-    </g>
-    <g fill="#070303">
-      <polygon points="34,232 24,232 28,180 60,92 70,102 42,178 40,232"/>
-      <circle cx="186" cy="6" r="7"/>
-      <circle cx="138" cy="30" r="5"/>
-      <circle cx="44" cy="70" r="5"/>
-    </g>
-    <g class="tree-samurai" fill="#070303">
-      <polygon points="96,72 128,72 122,58 102,58"/>
-      <circle cx="112" cy="78" r="9"/>
-      <path d="M106,76 C92,74 86,84 82,98" stroke="#070303" stroke-width="6" stroke-linecap="round" fill="none"/>
-      <polygon points="104,84 126,84 130,102 110,106"/>
-      <ellipse cx="128" cy="104" rx="8" ry="5"/>
-      <line x1="128" y1="94" x2="152" y2="106" stroke="#070303" stroke-width="5" stroke-linecap="round"/>
-      <line x1="124" y1="88" x2="131" y2="95" stroke="#070303" stroke-width="6" stroke-linecap="round"/>
-    </g>
-    <circle cx="158" cy="118" r="4" fill="#dc2626" opacity="0.85"/>
-    <circle cx="158" cy="118" r="8" fill="#ef4444" opacity="0.15"/>
-  </svg>
 
   <nav>
     <div class="brand">
