@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "Shadow chatbot",
   "short_name": "Shadow chatbot",
   "description": "AI assistant for Rayat Bahra Institute of Engineering and Nano Technology, Hoshiarpur. Ask about admissions, fees, events, hostels and placements, plus explore campus videos.",
@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#170707",
-  "theme_color": "#170707",
+  "background_color": "#0f1b3a",
+  "theme_color": "#0f1b3a",
   "lang": "en",
   "icons": [
     {
