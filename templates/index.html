@@ -1005,26 +1005,26 @@ const splash = document.getElementById('splash');
 const canvas = document.getElementById('splashCanvas');
 const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-function no3d() { window.__s3dActive = false; return; }
-if (!canvas || !splash || reduced || !window.WebGLRenderingContext) {
-  const why = !window.WebGLRenderingContext ? 'WebGL off' : (reduced ? 'reduced-motion' : 'missing DOM');
-  if (window.__diag) window.__diag('3D engine: skipped (' + why + ')');
-  no3d();
-}
-
-let renderer;
-try {
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-} catch (e) {
-  if (window.__diag) window.__diag('3D engine: WebGL init failed - ' + e.message);
-  no3d(); return;
-}
-
-window.__s3dActive = true;
-splash.classList.add('mode3d');
-const sst = document.getElementById('splashStatus');
-if (sst) sst.textContent = '';
-if (window.__diag) window.__diag('3D engine: loaded OK, starting scene');
+(function () {
+  function no3d() { window.__s3dActive = false; }
+  if (!canvas || !splash || reduced || !window.WebGLRenderingContext) {
+    const why = !window.WebGLRenderingContext ? 'WebGL off' : (reduced ? 'reduced-motion' : 'missing DOM');
+    if (window.__diag) window.__diag('3D engine: skipped (' + why + ')');
+    no3d(); return;
+  }
+  let renderer;
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  } catch (e) {
+    if (window.__diag) window.__diag('3D engine: WebGL init failed - ' + e.message);
+    no3d(); return;
+  }
+  window.__s3dActive = true;
+  splash.classList.add('mode3d');
+  const sst = document.getElementById('splashStatus');
+  if (sst) sst.textContent = '';
+  if (window.__diag) window.__diag('3D engine: loaded OK, starting scene');
+  try {
 
 const UX = /Android|iPhone|iPad/i.test(navigator.userAgent);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, UX ? 1.5 : 2));
@@ -1437,7 +1437,12 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 window.__diagOnce = true;
-requestAnimationFrame(frame);
+  requestAnimationFrame(frame);
+  } catch (e) {
+    if (window.__diag) window.__diag('3D engine runtime error: ' + e.message);
+    window.__s3dActive = false;
+  }
+})();
 </script>
 </body>
 </html>
