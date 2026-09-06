@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shadow - AI College Assistant | Rayat Bahra Hoshiarpur</title>
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"}}</script>
 <link rel="manifest" href="/static/manifest.webmanifest">
   <link rel="icon" type="image/png" href="/static/favicon.png">
 <meta name="theme-color" content="#05060f">
@@ -910,7 +909,7 @@ if ('serviceWorker' in navigator) {
    katana under a light-red moon. Falls back to the SVG splash
    if WebGL or the CDN is unavailable.
    ============================================================ */
-import * as THREE from 'three';
+import * as THREE from '/static/vendor/three.module.js';
 
 const splash = document.getElementById('splash');
 const canvas = document.getElementById('splashCanvas');

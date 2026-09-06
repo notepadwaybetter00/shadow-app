@@ -1,9 +1,10 @@
-﻿const CACHE = 'shadow-v12';
+﻿const CACHE = 'shadow-v13';
 const APP_SHELL = [
   '/',
   '/static/manifest.webmanifest',
   '/static/icons/icon-192.png',
-  '/static/icons/icon-512.png'
+  '/static/icons/icon-512.png',
+  '/static/vendor/three.module.js'
 ];
 
 self.addEventListener('install', (event) => {
